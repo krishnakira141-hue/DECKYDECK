@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Video Decks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+/* =====================================================================
+   SET EVERYTHING HERE
+   ===================================================================== */
+const CONFIG = {
+  // How HORIZONTAL videos (e.g. 1920x1080) are framed.
+  // They are cropped from the LEFT and RIGHT, keeping the middle.
+  //   "screen" = fill the whole phone screen exactly (no gaps)
+  //   "9/18"   = 18:9 phone shape (9 wide, 18 tall)
+  //   "12/18"  = 18:12 shape (12 wide, 18 tall) - keeps more of the sides
+  // Vertical videos are always shown whole.
+  horizontalRatio: "screen",
+
+  // true = the intro video loops until you pick something from the menu
+  loopIntro: true,
+
+  // When a menu video ends: "menu" = open the menu, "intro" = go back to the intro
+  afterClip: "menu",
+
+  // ---- DECKS: one entry = one thumbnail on the home screen ----
+  decks: [
+    {
+      title: "Deck 1",
+      thumb: "",   // optional image link for the thumbnail; "" = use a frame of the intro
+      intro: "https://qwinky.b-cdn.net/VIDEOS/133_WBD/133-Lilly_Mays-Face-Massage-INTRO.mp4",
+      menu: {
+        M: [
+          { label: "M 1", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4" },
+          { label: "M 2", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4" },
+          { label: "M 3", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" }
+        ],
+        B: [
+          { label: "B 1", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4" },
+          { label: "B 2", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4" }
+        ],
+        C: [
+          { label: "C 1", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4" }
+        ],
+        A: [
+          { label: "A 1", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" }
+        ]
+      }
+    },
+    {
+      title: "Deck 2",
+      thumb: "",
+      intro: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+      menu: {
+        M: [ { label: "M 1", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4" } ],
+        B: [ { label: "B 1", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4" } ],
+        C: [ { label: "C 1", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" } ],
+        A: [ { label: "A 1", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4" } ]
+      }
+    },
+    {
+      title: "Deck 3",
+      thumb: "",
+      intro: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+      menu: { M: [], B: [], C: [], A: [] }
+    }
+  ]
+};
+</script>
+<style>
+  :root {
+    --bg: #0f141c;
+    --card: #1a2330;
+    --edge: #2a3647;
+    --text: #e9edf2;
+    --muted: #8d9aab;
+    --panel: #e9eefb;
+    --circle: #f4f7fe;
+    --blue: #5b7be0;
+    --blue-dark: #4a69cf;
+    --blue-shadow: #6f8ee8;
+    --letter: #8a1f1f;
+    --accent: #f2b84b;
+    font-family: "Familjen Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif;
+    color-scheme: dark;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); }
+
+  /* ---------- Home ---------- */
+  .home {
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: calc(env(safe-area-inset-top, 0px) + 1.5rem) 0 calc(env(safe-area-inset-bottom, 0px) + 1.5rem);
+  }
+  .home h1 { margin: 0 1.25rem 1rem; font-size: 1.5rem; font-weight: 600; }
+  .rail {
+    display: flex; gap: 1rem;
+    overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    padding: .5rem 1.25rem 1rem;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .card {
+    flex: 0 0 auto;
+    width: 62vw; max-width: 340px; min-width: 200px;
+    scroll-snap-align: start;
+    background: none; border: 0; padding: 0;
+    color: inherit; font: inherit; text-align: left; cursor: pointer;
+  }
+  .thumb {
+    display: block; position: relative;
+    padding-top: 62.5%;
+    border-radius: 14px; overflow: hidden;
+    background: var(--card); border: 1px solid var(--edge);
+    transition: transform 150ms ease;
+  }
+  .card:hover .thumb { transform: translateY(-2px); }
+  .card:focus-visible .thumb { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .thumb img, .thumb video {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none;
+  }
+  .name { display: block; margin-top: .6rem; font-weight: 500; }
+
+  /* ---------- Player ---------- */
+  .player { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; }
+  .stage {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden; cursor: pointer;
+  }
+  /* Frame size and position are set by JavaScript (fitFrame) */
+  .frame {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    overflow: hidden; background: #000;
+  }
+  .frame video {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: contain; background: #000;
+  }
+  .frame.wide video { object-fit: cover; object-position: 50% 50%; }
+
+  .hint, .notice {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 1.25rem);
+    max-width: calc(100% - 2rem);
+    background: rgba(26, 35, 48, .9); border: 1px solid var(--edge);
+    border-radius: 10px; padding: .55rem 1rem; font-size: .95rem;
+    pointer-events: none; opacity: 0; transition: opacity 300ms ease;
+  }
+  .hint.show, .notice.show { opacity: 1; }
+  .notice { color: #ff8a7a; }
+
+  /* ---------- Menu overlay ---------- */
+  .overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, .35);
+    display: flex; align-items: center; justify-content: center;
+    padding: calc(env(safe-area-inset-top, 0px) + 4rem) 4vw calc(env(safe-area-inset-bottom, 0px) + 1rem);
+    opacity: 0; visibility: hidden;
+    transition: opacity 200ms ease, visibility 200ms ease;
+  }
+  .overlay.open { opacity: 1; visibility: visible; }
+  .top {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + .75rem); left: .75rem; right: .75rem;
+    display: flex; align-items: center; justify-content: space-between;
+    pointer-events: none;
+  }
+  .top button {
+    pointer-events: auto;
+    font: inherit; font-weight: 500; color: var(--text);
+    background: rgba(26, 35, 48, .9); border: 1px solid var(--edge);
+    border-radius: 999px; padding: .55rem 1rem; cursor: pointer;
+  }
+  .top .title {
+    margin: 0 .5rem; font-weight: 600; text-shadow: 0 1px 4px #000;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .panel {
+    width: 100%; max-width: 900px; max-height: 100%;
+    overflow-y: auto; overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    background: var(--panel); border-radius: 22px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, .45);
+    padding: 0 .5rem 1.25rem;
+    cursor: default;
+  }
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .col {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0 .6rem;
+    border-left: 1px solid rgba(91, 123, 224, .25);
+    min-width: 0;
+  }
+  .col:first-child { border-left: 0; }
+  .col > * + * { margin-top: .9rem; }
+  .head {
+    position: -webkit-sticky; position: sticky; top: 0; z-index: 1;
+    width: calc(100% + 1.2rem);
+    display: flex; justify-content: center;
+    padding: 1.1rem 0 1rem; background: var(--panel);
+  }
+  .letter {
+    width: 12vw; height: 12vw; min-width: 52px; min-height: 52px; max-width: 96px; max-height: 96px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: var(--circle);
+    box-shadow: 0 5px 0 var(--blue-shadow), 0 0 0 1px rgba(111, 142, 232, .35);
+    color: var(--letter); font-weight: 700;
+    font-size: clamp(1.4rem, 4.5vw, 2.6rem);
+  }
+  .item {
+    width: 100%; min-height: 2.6rem;
+    border: 0; border-radius: 999px;
+    background: var(--blue); color: #fff;
+    font: inherit; font-weight: 500; font-size: clamp(.75rem, 2.4vw, .95rem);
+    line-height: 1.2; padding: .5rem .6rem;
+    overflow-wrap: anywhere; word-break: break-word; cursor: pointer;
+    transition: background 150ms ease;
+  }
+  .item:hover { background: var(--blue-dark); }
+  .item:focus-visible { outline: 2px solid var(--letter); outline-offset: 2px; }
+  .item.playing { background: var(--letter); }
+  .empty { color: #8a96b8; font-size: .85rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .overlay, .hint, .notice, .thumb { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <section class="home" id="home">
+    <h1>Choose a deck</h1>
+    <div class="rail" id="rail" aria-label="Video decks"></div>
+  </section>
+
+  <section class="player" id="player" hidden>
+    <div class="stage" id="stage">
+      <div class="frame" id="frame"><video id="vid" playsinline webkit-playsinline preload="auto"></video></div>
+      <div class="hint" id="hint">Tap the screen for the menu</div>
+      <div class="notice" id="notice" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="overlay" id="overlay" aria-hidden="true">
+      <div class="top">
+        <button type="button" id="backBtn">‹ Decks</button>
+        <span class="title" id="deckTitle"></span>
+        <button type="button" id="fsBtn">Full screen</button>
+      </div>
+      <div class="panel" id="panel">
+        <div class="grid" id="grid"></div>
+      </div>
+    </div>
+  </section>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const home = $("home"), rail = $("rail"), player = $("player"), stage = $("stage"),
+        frame = $("frame"), vid = $("vid"), overlay = $("overlay"), grid = $("grid"),
+        hint = $("hint"), notice = $("notice"), fsBtn = $("fsBtn");
+
+  // Frame shape for horizontal videos (width / height)
+  const useScreen = String(CONFIG.horizontalRatio).trim().toLowerCase() === "screen";
+  const fixedRatio = (() => {
+    const parts = String(CONFIG.horizontalRatio).split("/").map(Number);
+    return parts[0] > 0 && parts[1] > 0 ? parts[0] / parts[1] : 0.5;   // default 9/18
+  })();
+
+  let deck = null, mode = "", activeBtn = null, noticeTimer, hintTimer;
+
+  function el(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls; return e; }
+
+  function showNotice(msg) {
+    notice.textContent = msg;
+    notice.classList.add("show");
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => notice.classList.remove("show"), 4000);
+  }
+
+  // ---------- Frame sizing ----------
+  // Horizontal video -> centred frame of the chosen shape; video fills it and the
+  //                     left/right sides are cropped off, keeping the middle.
+  // Vertical video   -> frame fills the screen, video shown whole.
+  function fitFrame() {
+    const sw = stage.clientWidth || window.innerWidth;
+    const sh = stage.clientHeight || window.innerHeight;
+    const vw = vid.videoWidth, vh = vid.videoHeight;
+    const wide = vw > 0 && vh > 0 && vw > vh;
+
+    if (!wide) {
+      frame.classList.remove("wide");
+      frame.style.width = sw + "px";
+      frame.style.height = sh + "px";
+      frame.style.left = "0px";
+      frame.style.top = "0px";
+      return;
+    }
+
+    const r = useScreen ? sw / sh : fixedRatio;
+    let fw = sw, fh = sw / r;
+    if (fh > sh) { fh = sh; fw = sh * r; }
+    fw = Math.round(fw); fh = Math.round(fh);
+
+    frame.classList.add("wide");
+    frame.style.width = fw + "px";
+    frame.style.height = fh + "px";
+    frame.style.left = Math.round((sw - fw) / 2) + "px";
+    frame.style.top = Math.round((sh - fh) / 2) + "px";
+  }
+  ["loadedmetadata", "loadeddata", "playing", "resize"].forEach((ev) => vid.addEventListener(ev, fitFrame));
+  window.addEventListener("resize", fitFrame);
+  window.addEventListener("orientationchange", () => setTimeout(fitFrame, 300));
+  document.addEventListener("fullscreenchange", () => setTimeout(fitFrame, 100));
+  document.addEventListener("webkitfullscreenchange", () => setTimeout(fitFrame, 100));
+
+  // ---------- Home thumbnails ----------
+  CONFIG.decks.forEach((d, i) => {
+    const card = el("button", "card"); card.type = "button";
+    const thumb = el("span", "thumb");
+    if (d.thumb) {
+      const img = new Image(); img.src = d.thumb; img.alt = ""; img.loading = "lazy";
+      thumb.appendChild(img);
+    } else if (d.intro) {
+      const v = el("video"); v.muted = true; v.playsInline = true; v.preload = "metadata";
+      v.src = d.intro + "#t=1";
+      thumb.appendChild(v);
+    }
+    const name = el("span", "name"); name.textContent = d.title || `Deck ${i + 1}`;
+    card.appendChild(thumb); card.appendChild(name);
+    card.addEventListener("click", () => openDeck(i));
+    rail.appendChild(card);
+  });
+
+  // Mouse wheel scrolls the rail sideways on desktop
+  rail.addEventListener("wheel", (e) => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { rail.scrollLeft += e.deltaY; e.preventDefault(); }
+  }, { passive: false });
+
+  // ---------- Menu ----------
+  function buildMenu(d) {
+    grid.innerHTML = "";
+    const groups = Object.keys(d.menu || {});
+    grid.style.gridTemplateColumns = `repeat(${groups.length || 1}, minmax(0, 1fr))`;
+    groups.forEach((g) => {
+      const col = el("div", "col");
+      const head = el("div", "head");
+      const circle = el("div", "letter"); circle.textContent = g;
+      head.appendChild(circle); col.appendChild(head);
+      const items = d.menu[g] || [];
+      if (!items.length) { const e = el("span", "empty"); e.textContent = "—"; col.appendChild(e); }
+      items.forEach((item) => {
+        const b = el("button", "item"); b.type = "button";
+        b.textContent = item.label || "";
+        b.addEventListener("click", () => playClip(item.url, b));
+        col.appendChild(b);
+      });
+      grid.appendChild(col);
+    });
+  }
+
+  function openMenu() {
+    overlay.classList.add("open");
+    overlay.setAttribute("aria-hidden", "false");
+    hint.classList.remove("show");
+  }
+  function closeMenu() {
+    overlay.classList.remove("open");
+    overlay.setAttribute("aria-hidden", "true");
+  }
+  stage.addEventListener("click", openMenu);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) closeMenu(); });
+
+  // ---------- Playback ----------
+  function play(url, loop) {
+    vid.loop = !!loop;
+    vid.src = url;
+    vid.muted = false;
+    const p = vid.play();
+    if (p) p.catch(() => { vid.muted = true; vid.play().catch(() => {}); });
+  }
+
+  function setActive(b) {
+    if (activeBtn) activeBtn.classList.remove("playing");
+    activeBtn = b;
+    if (b) b.classList.add("playing");
+  }
+
+  function playIntro() {
+    mode = "intro"; setActive(null);
+    if (!deck.intro) { openMenu(); return; }
+    play(deck.intro, CONFIG.loopIntro);
+  }
+
+  function playClip(url, btn) {
+    if (!url) return;
+    mode = "clip"; setActive(btn); closeMenu();
+    play(url, false);
+  }
+
+  vid.addEventListener("ended", () => {
+    if (mode === "clip" && CONFIG.afterClip === "intro") playIntro();
+    else openMenu();
+  });
+  vid.addEventListener("error", () => {
+    if (!vid.getAttribute("src")) return;
+    showNotice("This video couldn’t load. Check its link in CONFIG.");
+    openMenu();
+  });
+
+  // ---------- Open / close a deck ----------
+  function openDeck(i) {
+    deck = CONFIG.decks[i];
+    buildMenu(deck);
+    $("deckTitle").textContent = deck.title || "";
+    home.hidden = true; player.hidden = false;
+    fitFrame();
+    closeMenu();
+    playIntro();
+    hint.classList.add("show");
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => hint.classList.remove("show"), 3000);
+    history.pushState({ deck: i }, "");
+  }
+
+  function closePlayer() {
+    closeMenu();
+    vid.pause(); vid.removeAttribute("src"); vid.load();
+    frame.classList.remove("wide");
+    frame.removeAttribute("style");
+    player.hidden = true; home.hidden = false;
+    deck = null; mode = ""; activeBtn = null;
+    if (document.fullscreenElement || document.webkitFullscreenElement)
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  }
+
+  $("backBtn").addEventListener("click", () => {
+    if (history.state && "deck" in history.state) history.back();
+    else closePlayer();
+  });
+  window.addEventListener("popstate", () => { if (!player.hidden) closePlayer(); });
+
+  // ---------- Full screen ----------
+  const root = document.documentElement;
+  const reqFS = root.requestFullscreen || root.webkitRequestFullscreen;
+  if (!reqFS) fsBtn.hidden = true;
+  fsBtn.addEventListener("click", () => {
+    if (document.fullscreenElement || document.webkitFullscreenElement)
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    else reqFS.call(root);
+  });
+  const fsLabel = () => {
+    fsBtn.textContent = (document.fullscreenElement || document.webkitFullscreenElement) ? "Exit full screen" : "Full screen";
+  };
+  document.addEventListener("fullscreenchange", fsLabel);
+  document.addEventListener("webkitfullscreenchange", fsLabel);
+
+  // ---------- Keyboard ----------
+  document.addEventListener("keydown", (e) => {
+    if (player.hidden) return;
+    if (e.key === "Escape") {
+      if (overlay.classList.contains("open")) closeMenu(); else $("backBtn").click();
+    } else if (e.key === "m" || e.key === "M") {
+      overlay.classList.contains("open") ? closeMenu() : openMenu();
+    }
+  });
+})();
+</script>
+</body>
+</html>
